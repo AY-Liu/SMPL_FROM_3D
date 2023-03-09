@@ -10,3 +10,5 @@ mediapipe
 func_timeout
 pyrender
 trimesh
+debugpy
+pyopengl

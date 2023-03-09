@@ -1,7 +1,7 @@
 from os.path import join
 from model.smpl_layer import SMPLlayer
 
-def load_model(gender='neutral', use_cuda=True, model_type='smpl', skel_type='body25', device=None, model_path='/root/smpl/EasyMocap/data/smplx'):
+def load_model(gender='neutral', use_cuda=True, model_type='smpl', skel_type='body25', device=None, model_path='../smpl_model'):
     # prepare SMPL model
     # print('[Load model {}/{}]'.format(model_type, gender))
     import torch

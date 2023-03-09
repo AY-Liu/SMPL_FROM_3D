@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.insert(0,"/mnt/disk_2/aoyang/smpl/")
 import numpy as np
 from config import load_parser,parse_parser
 from tool.Timer import Timer
@@ -80,23 +82,23 @@ if __name__ == '__main__':
     parser.add_argument("--cuda",type=int,default=0)
     args = parse_parser(parser)
     
-    render_test = True
+    render_test = False
     
     origin_img_path = "/mnt/disk_2/aoyang/new_imgs"
     orgin_keypoints_path = "/mnt/disk_2/aoyang/new_skeleton"
     param_output_path = "/mnt/disk_2/aoyang/new_param"
+    model_path = "/mnt/disk_2/aoyang/smpl/smpl_model"
     
     for root,_,files in os.walk(orgin_keypoints_path):
         pass
+    files = sorted(files)
     for i in range(len(files)):
         name = files[i][:-4]
         save_path = os.path.join(param_output_path,"{}.pkl".format(name))
         kp3ds=np.load(os.path.join(orgin_keypoints_path,"{}.npy").format(name))
         kp3ds=left2right(kp3ds)
+        root = kp3ds[:,0,:]
         kp3ds=root_algin_np(kp3ds)
-        conf=np.transpose(np.array([[1]*kp3ds.shape[1]]))
-        conf=np.array([conf]*kp3ds.shape[0])
-        kp3ds=np.concatenate((kp3ds,conf),axis=2)
         conf=np.transpose(np.array([[1]*kp3ds.shape[1]]))
         conf=np.array([conf]*kp3ds.shape[0])
         kp3ds=np.concatenate((kp3ds,conf),axis=2)
@@ -108,12 +110,12 @@ if __name__ == '__main__':
         weight_shape=None
         weight_pose=None
         with Timer('Loading {}, {}'.format(args.model, args.gender), not args.verbose):
-            body_model = load_model(gender=args.gender, model_type=args.model)
+            body_model = load_model(gender=args.gender, model_type=args.model,model_path=model_path)
             params = smpl_from_keypoints3d(body_model,kp3ds,args,verts_type,weight_shape,weight_pose)
         joblib.dump(params,save_path)
         if render_test:
-            orgin_img_path = os.path.join(origin_img_path,name)
-            assert (get_number_dir(origin_img_path) == kp3ds.shape[0],"the frames are not matched")
+            img_path = os.path.join(origin_img_path,name)
+            assert (get_number_dir(img_path) == kp3ds.shape[0],"the frames are not matched")
             camera_params={
             "S1C1":np.array([[-0.9999773, -0.00404104, -0.00539746, 35.53189],
                                         [-0.004719454, 0.9912043, 0.1322568, 2.188294],
@@ -156,17 +158,14 @@ if __name__ == '__main__':
             start, end = args.start, min(args.end, kp3ds.shape[0])
             for nf in tqdm(range(start, end), desc='render'):
                 camera_pose=camera_params["S1C1"]
-                img=cv2.imread(os.path.join(orgin_img_path,"{:06d}.jpg".format(nf)))
+                img=cv2.imread(os.path.join(img_path,"{:06d}.jpg".format(nf)))
                 param = select_nf(params, nf - start)
                 vertices = body_model(return_verts=True, return_tensor=False, **param)[0]
-                root = kp3ds[:,0,:]
                 vertices += root[nf]
                 image=render_smpl_demo(vertices,faces,camera_pose,img,True,False)
                 plt.figure()
                 plt.axis('off')
                 plt.imshow(image)
-                if os.path.exists(save_path) == False:
-                    os.makedirs(save_path)
-                plt.savefig(os.path.join(save_path,"{:06d}.jpg").format(nf),dpi=600,pad_inches=0,bbox_inches='tight')
+                plt.savefig(os.path.join(param_output_path,"{:06d}.jpg").format(nf),dpi=600,pad_inches=0,bbox_inches='tight')
                 plt.close()
     

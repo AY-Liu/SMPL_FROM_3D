@@ -1,5 +1,6 @@
 import os
 os.environ["PYOPENGL_PLATFORM"]="osmesa"
+os.environ["MUJOCO_GL"]="osmesa"
 
 
 import numpy as np
